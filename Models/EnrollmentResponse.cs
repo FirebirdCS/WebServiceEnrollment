@@ -9,6 +9,8 @@ namespace Web_Final.Models
         public int Codigo { get; set; }
         [DataMember]
         public string Respuesta { get; set; }
+        [DataMember]
+        public string Carne { get; set; }
 
 
     }

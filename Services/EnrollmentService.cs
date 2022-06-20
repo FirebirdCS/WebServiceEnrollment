@@ -2,58 +2,30 @@ using Web_Final.Models;
 using Web_Final.Services;
 using System.Data.SqlClient;
 using System.Data;
+using System.Text.Json;
+using Serilog;
 
 namespace Web_Final.Services
 {
     public class EnrollmentService : IEnrollmentService
     {
         private SqlConnection connection = new SqlConnection("Server=localhost;Database=Kalum_Test;User Id=sa;Password=Inicio.2022;");
-        private List<Aspirante> aspirantes = new List<Aspirante>();
-        private List<CarreraTecnica> carreras = new List<CarreraTecnica>();
-
-        private List<Cargo> cargos = new List<Cargo>();
-
+        private AppLog AppLog = new AppLog();
         public EnrollmentService()
         {
-            carreras.Add(new CarreraTecnica() { CarreraId = "1", Carrera = "Fullstack Dotnet Core" });
-            carreras.Add(new CarreraTecnica() { CarreraId = "2", Carrera = "Fullstack Java Development" });
-            carreras.Add(new CarreraTecnica() { CarreraId = "3", Carrera = "Fullstack Javascript Angular" });
-            cargos.Add(new Cargo()
-            {
-                CargoId = "1",
-                Descripcion = "Pago por inscripcion",
-                Prefijo = "INSC",
-                Monto = 1200.00,
-                IsGeneraMora = false,
-                PorcentajeMora = 0
-            });
-            cargos.Add(new Cargo()
-            {
-                CargoId = "2",
-                Descripcion = "Pago de carné",
-                Prefijo = "CARNE",
-                Monto = 100.00,
-                IsGeneraMora = false,
-                PorcentajeMora = 0
-            });
-            cargos.Add(new Cargo()
-            {
-                CargoId = "3",
-                Descripcion = "Pago mensual de colegiatura",
-                Prefijo = "COL",
-                Monto = 600.00,
-                IsGeneraMora = false,
-                PorcentajeMora = 0
-            });
+
         }
 
         public EnrollmentResponse EnrollmentProcess(EnrollmentRequest request)
         {
+            AppLog.ResponseTime = Convert.ToInt16(DateTime.Now.ToString("fff"));
+            AppLog.DateTime = DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss");
             EnrollmentResponse respuesta = null;
             Aspirante aspirante = buscarAspirante(request.NoExpediente);
             if (aspirante == null)
             {
                 respuesta = new EnrollmentResponse() { Codigo = 204, Respuesta = $"No existe el aspirante con el número de expediente {request.NoExpediente}" };
+                ImprimirLog(204, $"No existen registros para el expediente {request.NoExpediente}", "Information");
             }
             else
             {
@@ -71,31 +43,74 @@ namespace Web_Final.Services
 
         private EnrollmentResponse EjecutarProcedimiento(EnrollmentRequest request)
         {
-            EnrollmentResponse respuesta = null;
+            EnrollmentResponse response = null;
             SqlCommand cmd = new SqlCommand("sp_EnrollmentProcess", connection);
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add(new SqlParameter("@NoExpediente", request.NoExpediente));
             cmd.Parameters.Add(new SqlParameter("@Ciclo", request.Ciclo));
             cmd.Parameters.Add(new SqlParameter("@MesInicioPago", request.MesInicioPago));
             cmd.Parameters.Add(new SqlParameter("@CarreraId", request.CarreraId));
+            SqlDataReader reader = null;
             try
             {
                 connection.Open();
-                cmd.ExecuteNonQuery();
+                reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    response = new EnrollmentResponse() { Respuesta = reader.GetValue(0).ToString(), Carne = reader.GetValue(1).ToString() };
+
+                    if (reader.GetValue(0).ToString().Equals("TRANSACTION SUCCESS"))
+                    {
+                        response.Codigo = 201;
+                        ImprimirLog(201, reader.GetValue(0).ToString(), "Information");
+                    }
+                    else if (reader.GetValue(0).ToString().Equals("TRANSACTION ERROR"))
+                    {
+                        response.Codigo = 503;
+                        ImprimirLog(503, reader.GetValue(0).ToString(), "Error");
+                    }
+                    else
+                    {
+                        response.Codigo = 503;
+                        ImprimirLog(503, "Error al momento de llamar al SP", "Error");
+                    }
+                }
+                reader.Close();
                 connection.Close();
-                respuesta = new EnrollmentResponse() { Codigo = 201, Respuesta = "Enrollment success!" };
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
-                respuesta = new EnrollmentResponse() { Codigo = 503, Respuesta = "Error en el servicio!" };
+                response = new EnrollmentResponse() { Codigo = 503, Respuesta = "Error en el servicio!", Carne = "0" };
+                ImprimirLog(503, "Error en el servicio!", "Error");
             }
             finally
             {
                 connection.Close();
             }
 
-            return respuesta;
+            return response;
+        }
+
+        private void ImprimirLog(int responseCode, string message, string typeLog)
+        {
+            AppLog.ResponseCode = responseCode;
+            AppLog.Message = message;
+            AppLog.ResponseTime = Convert.ToInt16(DateTime.Now.ToString("fff")) - AppLog.ResponseTime;
+            if (typeLog.Equals("Information"))
+            {
+                AppLog.Level = 20;
+                Log.Information(JsonSerializer.Serialize(AppLog));
+            }
+            else if (typeLog.Equals("Error"))
+            {
+                AppLog.Level = 40;
+                Log.Error(JsonSerializer.Serialize(AppLog));
+            }
+            else if (typeLog.Equals("Debug"))
+            {
+                AppLog.Level = 10;
+                Log.Debug(JsonSerializer.Serialize(AppLog));
+            }
         }
 
         private Aspirante buscarAspirante(string noExpediente)

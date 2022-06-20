@@ -13,11 +13,5 @@ namespace Web_Final.Models
         public int MesInicioPago { get; set; }
         [DataMember]
         public string CarreraId { get; set; }
-        [DataMember]
-        public string CargoInscripcion { get; set; }
-        [DataMember]
-        public string CargoCarne { get; set; }
-        [DataMember]
-        public string CargoMensualidad { get; set; }
     }
 }
