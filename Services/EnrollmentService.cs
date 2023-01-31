@@ -1,19 +1,21 @@
 using Web_Final.Models;
-using Web_Final.Services;
 using System.Data.SqlClient;
 using System.Data;
 using System.Text.Json;
 using Serilog;
+using Web_Final.Helpers;
 
 namespace Web_Final.Services
 {
     public class EnrollmentService : IEnrollmentService
     {
-        private SqlConnection connection = new SqlConnection("Server=localhost;Database=Kalum_Test;User Id=sa;Password=Inicio.2022;");
+        private IConfiguration Configuration;
+        private SqlConnection Connection = null;
         private AppLog AppLog = new AppLog();
-        public EnrollmentService()
+        public EnrollmentService(IConfiguration Configuration)
         {
-
+            this.Configuration = Configuration;
+            this.Connection = new SqlConnection(this.Configuration.GetConnectionString("defaultConnection"));
         }
 
         public EnrollmentResponse EnrollmentProcess(EnrollmentRequest request)
@@ -44,7 +46,7 @@ namespace Web_Final.Services
         private EnrollmentResponse EjecutarProcedimiento(EnrollmentRequest request)
         {
             EnrollmentResponse response = null;
-            SqlCommand cmd = new SqlCommand("sp_EnrollmentProcess", connection);
+            SqlCommand cmd = new SqlCommand("sp_EnrollmentProcess", this.Connection);
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.Add(new SqlParameter("@NoExpediente", request.NoExpediente));
             cmd.Parameters.Add(new SqlParameter("@Ciclo", request.Ciclo));
@@ -53,7 +55,7 @@ namespace Web_Final.Services
             SqlDataReader reader = null;
             try
             {
-                connection.Open();
+                this.Connection.Open();
                 reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
@@ -76,7 +78,7 @@ namespace Web_Final.Services
                     }
                 }
                 reader.Close();
-                connection.Close();
+                this.Connection.Close();
             }
             catch (Exception e)
             {
@@ -85,12 +87,11 @@ namespace Web_Final.Services
             }
             finally
             {
-                connection.Close();
+                this.Connection.Close();
             }
 
             return response;
         }
-
         private void ImprimirLog(int responseCode, string message, string typeLog)
         {
             AppLog.ResponseCode = responseCode;
@@ -117,7 +118,7 @@ namespace Web_Final.Services
         {
             Aspirante resultado = null;
 
-            SqlDataAdapter daAspirante = new SqlDataAdapter($"SELECT * FROM Aspirante a WHERE a.NoExpediente = '{noExpediente}';", connection);
+            SqlDataAdapter daAspirante = new SqlDataAdapter($"SELECT * FROM Aspirante a WHERE a.NoExpediente = '{noExpediente}';", this.Connection);
             DataSet dsAspirante = new DataSet();
             daAspirante.Fill(dsAspirante, "Aspirante");
             if (dsAspirante.Tables["Aspirante"].Rows.Count > 0)
@@ -138,6 +139,65 @@ namespace Web_Final.Services
 
 
             return resultado;
+        }
+        public CandidateRecordResponse CandidateRegisterProcess(CandidateRecordRequest request)
+        {
+            AppLog.ResponseTime = Convert.ToInt16(DateTime.Now.ToString("fff"));
+            AppLog.DateTime = DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss");
+            CandidateRecordResponse response = null;
+            SqlCommand cmd = new SqlCommand("sp_CandidateRecordCreate", this.Connection);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.Add(new SqlParameter("@apellidos", request.Apellidos));
+            cmd.Parameters.Add(new SqlParameter("@nombres", request.Nombres));
+            cmd.Parameters.Add(new SqlParameter("@direccion", request.Direccion));
+            cmd.Parameters.Add(new SqlParameter("@telefono", request.Telefono));
+            cmd.Parameters.Add(new SqlParameter("@email", request.Email));
+            cmd.Parameters.Add(new SqlParameter("@carreraId", request.CarreraId));
+            cmd.Parameters.Add(new SqlParameter("@examenId", request.ExamenId));
+            cmd.Parameters.Add(new SqlParameter("@jornadaId", request.JornadaId));
+            SqlDataReader reader = null;
+            try
+            {
+                this.Connection.Open();
+                reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    response = new CandidateRecordResponse()
+                    {
+                        Respuesta = reader.GetValue(0).ToString(),
+                        NoExpediente = reader.GetValue(1).ToString()
+                    };
+                    if (reader.GetValue(0).ToString().Equals("TRANSACTION SUCCESS"))
+                    {
+                        response.Codigo = 201;
+                        Utils.ImprimirLog(201, reader.GetValue(0).ToString(), "Information", this.AppLog);
+                    }
+                    else if (reader.GetValue(0).ToString().Equals("TRANSACTION ERROR"))
+                    {
+                        response.Codigo = 503;
+                        Utils.ImprimirLog(503, reader.GetValue(0).ToString(), "Information", this.AppLog);
+
+                    }
+                    else
+                    {
+                        response.Codigo = 500;
+                        Utils.ImprimirLog(500, "Error en el proceso para generar el expediente", "Information", this.AppLog);
+                    }
+                }
+                reader.Close();
+                this.Connection.Close();
+            }
+            catch (Exception e)
+            {
+                response = new CandidateRecordResponse() { Codigo = 503, Respuesta = "Error al momento de ejecutar el proceso de registro", NoExpediente = "0" };
+                Utils.ImprimirLog(500, e.Message, "Information", this.AppLog);
+
+            }
+            finally
+            {
+                this.Connection.Close();
+            }
+            return response;
         }
     }
 }

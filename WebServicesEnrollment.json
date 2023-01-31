@@ -1,0 +1,54 @@
+﻿[
+    {
+        "Name": "WebServicesEnrollment",
+        "HostName": "DESKTOP-I4FMIP2",
+        "ApiKey": "N/A",
+        "Uri": "/EnrollmentService.asmx",
+        "ResponseCode": 503,
+        "ResponseTime": 490,
+        "Ip": "172.31.208.1",
+        "Level": 40,
+        "Message": "TRANSACTION ERROR",
+        "DateTime": "2022-06-24 11:26:54",
+        "Version": "v1"
+    },
+    {
+        "Name": "WebServicesEnrollment",
+        "HostName": "DESKTOP-I4FMIP2",
+        "ApiKey": "N/A",
+        "Uri": "/EnrollmentService.asmx",
+        "ResponseCode": 503,
+        "ResponseTime": -758,
+        "Ip": "172.31.208.1",
+        "Level": 40,
+        "Message": "TRANSACTION ERROR",
+        "DateTime": "2022-06-24 11:28:57",
+        "Version": "v1"
+    },
+    {
+        "Name": "WebServicesEnrollment",
+        "HostName": "DESKTOP-I4FMIP2",
+        "ApiKey": "N/A",
+        "Uri": "/EnrollmentService.asmx",
+        "ResponseCode": 503,
+        "ResponseTime": -758,
+        "Ip": "172.31.208.1",
+        "Level": 40,
+        "Message": "TRANSACTION ERROR",
+        "DateTime": "2022-06-24 11:34:23",
+        "Version": "v1"
+    },
+    {
+        "Name": "WebServicesEnrollment",
+        "HostName": "DESKTOP-I4FMIP2",
+        "ApiKey": "N/A",
+        "Uri": "/EnrollmentService.asmx",
+        "ResponseCode": 503,
+        "ResponseTime": 7,
+        "Ip": "172.31.208.1",
+        "Level": 40,
+        "Message": "TRANSACTION ERROR",
+        "DateTime": "2022-06-24 11:34:29",
+        "Version": "v1"
+    }
+]

@@ -7,9 +7,10 @@ namespace Web_Final.Services
     public interface IEnrollmentService
     {
         [OperationContract]
-        string Test(string s1);
+        string Test(string s);
         [OperationContract]
         EnrollmentResponse EnrollmentProcess(EnrollmentRequest request);
-
+        [OperationContract]
+        CandidateRecordResponse CandidateRegisterProcess(CandidateRecordRequest request);
     }
 }
